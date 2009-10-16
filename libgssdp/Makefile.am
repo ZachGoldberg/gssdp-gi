@@ -49,3 +49,40 @@ EXTRA_DIST = gssdp-marshal.list
 CLEANFILES = $(BUILT_SOURCES)
 DISTCLEANFILES = $(BUILT_SOURCES)
 MAINTAINERCLEANFILES = Makefile.in $(BUILT_SOURCES)
+
+SCANNER_BIN = g-ir-scanner
+SCANNER_PYTHONPATH = $(top_builddir):$(top_srcdir):$$PYTHONPATH
+SCANNER_ENV = env PYTHONPATH=$(SCANNER_PYTHONPATH) \
+        UNINSTALLED_INTROSPECTION_SRCDIR=$(top_srcdir) \
+        UNINSTALLED_INTROSPECTION_BUILDDIR=$(top_builddir)
+SCANNER_ARGS = -v --add-include-path=.
+SCANNER = $(AM_V_GEN) env LPATH=.libs $(CHECK_DEBUG) $(SCANNER_ENV) $(SCANNER_BIN) $(SCANNER_ARGS)
+SCANNER_LIBS = \
+        $(top_srcdir)/giscanner/*.py \
+        $(top_builddir)/giscanner/libgiscanner.la \
+        $(top_builddir)/girepository/libgirepository-1.0.la
+
+GLIB_INCLUDEDIR=`pkg-config --variable=includedir glib-2.0`/glib-2.0
+GLIB_LIBDIR=`pkg-config --variable=libdir glib-2.0`
+
+GLIB_LIBRARY=glib-2.0
+
+GSSDP-1.0.gir:
+	env PYTHONPATH=.:.. env LPATH=.libs $(SCANNER_BIN) $(SCANNER_ARGS) \
+            --namespace GSSDP --nsversion=1.0 \
+            --noclosure \
+            --output $@ \
+            --libtool="$(LIBTOOL)" \
+            -I/usr/local/include/gssdp-1.0 \
+            -I/usr/include/libxml2 \
+            -I/usr/local/include/gobject-introspection-1.0 \
+            -I$(GLIB_INCLUDEDIR) \
+            -I$(GLIB_LIBDIR)/glib-2.0/include \
+            --include=GObject-2.0 \  
+            --library=gssdp-1.0 \
+            --pkg gssdp-1.0 \
+            gssdp-client.h gssdp-error.h gssdp-resource-browser.h gssdp-resource-group.h
+
+GSSDP-1.0.typelib: GSSDP-1.0.gir
+	g-ir-compiler --includedir=. $(G_IR_COMPILER_OPTS)  -o $@ GSSDP-1.0.gir
+
